@@ -113,29 +113,30 @@ function mostrarToast(mensaje, tipo = 'exito', duracionMs = 4000) {
 
 /** Muestra el estado de carga y oculta el resto. */
 function mostrarCargando() {
-  document.getElementById('estado-cargando')?.classList.remove('hidden')
-  document.getElementById('estado-error')?.classList.add('hidden')
-  document.getElementById('contenido-principal')?.classList.add('hidden')
+  document.getElementById('cargando')?.classList.remove('hidden')
+  document.getElementById('error-sin-evento')?.classList.add('hidden')
+  document.getElementById('encabezado-evento')?.style.setProperty('display', 'none')
 }
 
 /** Muestra el panel de error genérico con un mensaje personalizado. */
 function mostrarError(mensaje) {
-  document.getElementById('estado-cargando')?.classList.add('hidden')
-  const errorEl = document.getElementById('estado-error')
-  const mensajeEl = document.getElementById('estado-error-mensaje')
+  document.getElementById('cargando')?.classList.add('hidden')
+  document.getElementById('encabezado-evento')?.style.setProperty('display', 'none')
+  const errorEl = document.getElementById('error-sin-evento')
+  // Actualizar el mensaje del error si hay un párrafo de descripción
+  const mensajeEl = errorEl?.querySelector('p.texto-base')
   if (mensajeEl) mensajeEl.textContent = mensaje
   errorEl?.classList.remove('hidden')
 }
 
 /** Rellena el encabezado del evento con los datos de la BD. */
 function rellenarEncabezadoEvento(evento) {
-  document.getElementById('titulo-evento').textContent        = evento.titulo
-  document.getElementById('descripcion-evento').textContent   = evento.descripcion
-  document.getElementById('fecha-limite-evento').textContent  = formatearFecha(evento.fecha_evento)
+  document.getElementById('evento-titulo').textContent       = evento.titulo
+  document.getElementById('evento-descripcion').textContent  = evento.descripcion
+  document.getElementById('evento-fecha').textContent        = formatearFecha(evento.fecha_evento)
 }
 
-/**
- * Muestra la vista de solo lectura con los datos de la respuesta.
+/** Muestra la vista de solo lectura con los datos de la respuesta.
  * Se usa tanto para respuestas pre-existentes como para las recién enviadas.
  *
  * @param {{ nombre_tutor, parentesco_tutor, autoriza, alergias, nota_adicional }} datos
@@ -145,7 +146,7 @@ function rellenarEncabezadoEvento(evento) {
  */
 function mostrarSoloLectura(datos, mostrarBannerExito = false) {
   // Ocultar formulario, mostrar solo lectura
-  document.getElementById('vista-formulario')?.classList.add('hidden')
+  document.getElementById('form-respuesta')?.classList.add('hidden')
   const seccionSL = document.getElementById('vista-solo-lectura')
   seccionSL?.classList.remove('hidden')
 
@@ -164,7 +165,7 @@ function mostrarSoloLectura(datos, mostrarBannerExito = false) {
     datos.autoriza === true || datos.autoriza === 'si' ? 'Sí, autoriza' : 'No autoriza'
 
   document.getElementById('sl-nombre-tutor').textContent      = datos.nombre_tutor
-  document.getElementById('sl-parentesco-tutor').textContent  = datos.parentesco_tutor
+  document.getElementById('sl-parentesco').textContent        = datos.parentesco_tutor
   document.getElementById('sl-autoriza').textContent          = autorizaTexto
   document.getElementById('sl-alergias').textContent          = datos.alergias?.trim()      || 'Ninguna'
   document.getElementById('sl-nota-adicional').textContent    = datos.nota_adicional?.trim() || 'Ninguna'
@@ -173,7 +174,7 @@ function mostrarSoloLectura(datos, mostrarBannerExito = false) {
 /** Muestra el formulario editable y oculta la vista de solo lectura. */
 function mostrarFormulario(eventoVencido) {
   document.getElementById('vista-solo-lectura')?.classList.add('hidden')
-  const seccionForm = document.getElementById('vista-formulario')
+  const seccionForm = document.getElementById('form-respuesta')
   seccionForm?.classList.remove('hidden')
 
   // Si el evento está vencido, deshabilitar todos los campos (Req 4.6)
@@ -361,8 +362,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   )
 
   // Mostrar contenido principal
-  document.getElementById('estado-cargando')?.classList.add('hidden')
-  document.getElementById('contenido-principal')?.classList.remove('hidden')
+  document.getElementById('cargando')?.classList.add('hidden')
+  const encabezadoEl = document.getElementById('encabezado-evento')
+  if (encabezadoEl) encabezadoEl.style.display = ''
   rellenarEncabezadoEvento(evento)
 
   const vencido = esVencido(evento.fecha_evento)
@@ -385,7 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── 6. Conectar envío del formulario ────────────────────────────────────────
-  const formRespuesta = document.getElementById('form-respuesta')
+  const formRespuesta = document.getElementById('form-respuesta-inner')
   if (formRespuesta) {
     formRespuesta.addEventListener('submit', (event) => manejarEnvio(event, sesion, eventoId))
   }
