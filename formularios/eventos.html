@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Formulario de autorización escolar" />
+  <title>Formulario de Autorización — Formularios Escolares</title>
+
+  <!-- Tailwind CSS CDN con configuración de paleta institucional -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Paleta institucional (Req 10.3)
+            primario: {
+              DEFAULT: '#2563EB',
+              hover:   '#1D4ED8',
+              light:   '#DBEAFE',
+            },
+            exito: {
+              DEFAULT: '#059669',
+              hover:   '#047857',
+              light:   '#D1FAE5',
+            },
+            acento: {
+              DEFAULT: '#F59E0B',
+              hover:   '#D97706',
+              light:   '#FEF3C7',
+            },
+            error: {
+              DEFAULT: '#DC2626',
+              hover:   '#B91C1C',
+              light:   '#FEE2E2',
+            },
+            fondo:  '#F8FAFC',
+            blanco: '#FFFFFF',
+          },
+          borderRadius: {
+            // Radio ≥16px para tarjetas (Req 10.5)
+            card: '1rem',
+          },
+          minHeight: {
+            // Área táctil mínima 44px (Req 10.1, 10.2)
+            touch: '2.75rem',
+          },
+          minWidth: {
+            touch: '2.75rem',
+          },
+          spacing: {
+            // Separación mínima entre elementos interactivos 16px (Req 10.2)
+            interactive: '1rem',
+          },
+          fontSize: {
+            // Tipografía jerárquica (Req 10.4)
+            titulo:    ['1.5rem',   { lineHeight: '1.3', fontWeight: '700' }],
+            subtitulo: ['1.125rem', { lineHeight: '1.4', fontWeight: '600' }],
+            base:      ['1rem',     { lineHeight: '1.5', fontWeight: '400' }],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Sistema de diseño institucional base -->
+  <link rel="stylesheet" href="../../styles/base.css" />
+</head>
+
+<body class="bg-fondo min-h-screen">
+
+  <!-- Advertencia para tamaños de pantalla no óptimos (Req 10.9) -->
+  <div class="screen-warning" role="alert" aria-live="polite">
+    <div class="card" style="max-width: 400px;">
+      <p class="titulo-principal mb-4">⚠️ Tamaño de pantalla no optimizado</p>
+      <p class="texto-base">
+        Esta aplicación está diseñada para pantallas entre 320px y 1920px de ancho.
+        Ajusta el tamaño de la ventana de tu navegador para continuar.
+      </p>
+    </div>
+  </div>
+
+  <!-- Indicador de modo sin conexión (Req 13.7) -->
+  <div id="offline-banner" class="offline-banner" role="status" aria-live="polite">
+    📡 Modo sin conexión — Verifica tu conexión a internet
+  </div>
+
+  <!-- Barra de navegación -->
+  <nav class="bg-blanco border-b border-gray-200 sticky top-0 z-50">
+    <div class="container-app">
+      <div class="actions-row py-3">
+        <a
+          href="/index.html"
+          class="btn btn-secondary"
+          style="margin-bottom: 0;"
+          aria-label="Volver a la lista de formularios"
+        >
+          ← Volver
+        </a>
+        <p class="subtitulo text-primario">🏫 Formularios Escolares</p>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="container-app py-6">
+
+    <!-- Estado de carga -->
+    <div id="cargando" class="text-center py-16 text-gray-500 texto-base" aria-live="polite">
+      Cargando formulario…
+    </div>
+
+    <!-- Error: falta evento_id en la URL -->
+    <div id="error-sin-evento" class="hidden" role="alert">
+      <div class="card" style="max-width: 480px; margin: 0 auto; text-align: center;">
+        <p class="subtitulo text-error mb-2">❌ Formulario no encontrado</p>
+        <p class="texto-base text-gray-500 mb-4">
+          No se especificó el formulario. Por favor regresa a la lista y selecciona uno.
+        </p>
+        <a href="/index.html" class="btn btn-primary">← Ir a la lista de formularios</a>
+      </div>
+    </div>
+
+    <!-- Encabezado del evento (se rellena dinámicamente) -->
+    <div id="encabezado-evento" class="card mb-6" style="display:none;">
+      <h1 id="evento-titulo" class="titulo-principal text-primario mb-2"></h1>
+      <p id="evento-descripcion" class="texto-base text-gray-600 mb-3"></p>
+      <p class="texto-base text-gray-500 text-sm">
+        <span class="font-semibold">Fecha límite:</span>
+        <span id="evento-fecha"></span>
+      </p>
+    </div>
+
+    <!-- ================================================================
+         VISTA SOLO LECTURA — cuando ya existe una respuesta (Req 11.4)
+         ================================================================ -->
+    <div id="vista-solo-lectura" class="hidden">
+
+      <!-- Banner de confirmación enviado -->
+      <div
+        class="flex items-center gap-3 rounded-card px-5 py-4 mb-6"
+        style="background-color: var(--color-exito-light); border: 1.5px solid var(--color-exito);"
+        role="status"
+        aria-live="polite"
+      >
+        <span style="color: var(--color-exito); font-size: 1.5rem;" aria-hidden="true">✓</span>
+        <p class="font-semibold" style="color: #065F46;">Respuesta enviada</p>
+      </div>
+
+      <!-- Tarjeta con los datos enviados -->
+      <div class="card">
+        <h2 class="subtitulo mb-4">Tu respuesta registrada</h2>
+
+        <dl class="space-y-4">
+          <div>
+            <dt class="form-label">Nombre completo del tutor/a</dt>
+            <dd id="sl-nombre-tutor" class="texto-base text-gray-700 mt-1"></dd>
+          </div>
+          <div class="divider"></div>
+          <div>
+            <dt class="form-label">Parentesco con el alumno</dt>
+            <dd id="sl-parentesco" class="texto-base text-gray-700 mt-1"></dd>
+          </div>
+          <div class="divider"></div>
+          <div>
+            <dt class="form-label">¿Autoriza la participación?</dt>
+            <dd id="sl-autoriza" class="texto-base text-gray-700 mt-1"></dd>
+          </div>
+          <div class="divider"></div>
+          <div>
+            <dt class="form-label">Alergias o condiciones médicas</dt>
+            <dd id="sl-alergias" class="texto-base text-gray-700 mt-1"></dd>
+          </div>
+          <div class="divider"></div>
+          <div>
+            <dt class="form-label">Nota adicional</dt>
+            <dd id="sl-nota-adicional" class="texto-base text-gray-700 mt-1"></dd>
+          </div>
+        </dl>
+
+        <div class="mt-6">
+          <a href="/index.html" class="btn btn-secondary">← Volver a mis formularios</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         FORMULARIO EDITABLE — cuando no existe respuesta
+         ================================================================ -->
+    <div id="form-respuesta" class="hidden">
+
+      <!-- Banner de éxito tras envío (inicialmente oculto) -->
+      <div
+        id="banner-exito"
+        class="hidden flex items-center gap-3 rounded-card px-5 py-4 mb-6"
+        style="background-color: var(--color-exito-light); border: 1.5px solid var(--color-exito);"
+        role="status"
+        aria-live="polite"
+      >
+        <span style="color: var(--color-exito); font-size: 1.5rem;" aria-hidden="true">✓</span>
+        <p class="font-semibold" style="color: #065F46;">Tu respuesta fue registrada exitosamente</p>
+      </div>
+
+      <div class="card">
+        <h2 class="subtitulo mb-1">Formulario de autorización</h2>
+        <p class="texto-base text-gray-500 mb-5 text-sm">
+          Los campos marcados con <span class="text-error font-bold" aria-hidden="true">*</span>
+          <span class="sr-only">(asterisco)</span> son obligatorios.
+        </p>
+
+        <form id="form-respuesta-inner" novalidate>
+
+          <!-- nombre_tutor -->
+          <div class="form-group">
+            <label for="nombre_tutor" class="form-label">
+              Nombre completo del tutor/a
+              <span class="obligatorio" aria-label="campo obligatorio">*</span>
+            </label>
+            <input
+              type="text"
+              id="nombre_tutor"
+              name="nombre_tutor"
+              class="input-field"
+              placeholder="Ej. María García López"
+              maxlength="100"
+              required
+              aria-required="true"
+              aria-describedby="nombre-tutor-error"
+              autocomplete="name"
+            />
+            <span id="nombre-tutor-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- parentesco_tutor -->
+          <div class="form-group">
+            <label for="parentesco_tutor" class="form-label">
+              Parentesco con el alumno
+              <span class="obligatorio" aria-label="campo obligatorio">*</span>
+            </label>
+            <input
+              type="text"
+              id="parentesco_tutor"
+              name="parentesco_tutor"
+              class="input-field"
+              placeholder="Ej. Mamá, Papá, Abuela…"
+              maxlength="50"
+              required
+              aria-required="true"
+              aria-describedby="parentesco-tutor-error"
+            />
+            <span id="parentesco-tutor-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- autoriza (radio group) -->
+          <div class="form-group">
+            <fieldset id="autoriza" aria-required="true" aria-describedby="autoriza-error">
+              <legend class="form-label">
+                ¿Autoriza la participación?
+                <span class="obligatorio" aria-label="campo obligatorio">*</span>
+              </legend>
+
+              <div class="actions-row mt-2" style="gap: 1.5rem;">
+                <!-- Opción Sí -->
+                <label
+                  class="flex items-center gap-2 cursor-pointer"
+                  style="min-height: 2.75rem; min-width: 2.75rem;"
+                >
+                  <input
+                    type="radio"
+                    name="autoriza"
+                    id="autoriza-si"
+                    value="si"
+                    class="w-5 h-5 accent-primario cursor-pointer"
+                    style="min-width: 1.25rem; min-height: 1.25rem;"
+                  />
+                  <span class="texto-base font-medium">Sí</span>
+                </label>
+
+                <!-- Opción No -->
+                <label
+                  class="flex items-center gap-2 cursor-pointer"
+                  style="min-height: 2.75rem; min-width: 2.75rem;"
+                >
+                  <input
+                    type="radio"
+                    name="autoriza"
+                    id="autoriza-no"
+                    value="no"
+                    class="w-5 h-5 accent-primario cursor-pointer"
+                    style="min-width: 1.25rem; min-height: 1.25rem;"
+                  />
+                  <span class="texto-base font-medium">No</span>
+                </label>
+              </div>
+            </fieldset>
+            <span id="autoriza-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- alergias (opcional) -->
+          <div class="form-group">
+            <label for="alergias" class="form-label">
+              Alergias o condiciones médicas
+              <span class="text-gray-400 font-normal text-sm ml-1">(opcional)</span>
+            </label>
+            <textarea
+              id="alergias"
+              name="alergias"
+              class="input-field"
+              rows="3"
+              maxlength="500"
+              placeholder="Escribe aquí si el alumno tiene alguna alergia o condición médica relevante…"
+              aria-describedby="alergias-error"
+            ></textarea>
+            <span id="alergias-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- nota_adicional (opcional) -->
+          <div class="form-group">
+            <label for="nota_adicional" class="form-label">
+              Nota adicional
+              <span class="text-gray-400 font-normal text-sm ml-1">(opcional)</span>
+            </label>
+            <textarea
+              id="nota_adicional"
+              name="nota_adicional"
+              class="input-field"
+              rows="3"
+              maxlength="500"
+              placeholder="¿Hay algo más que quieras informar a la escuela?"
+              aria-describedby="nota-adicional-error"
+            ></textarea>
+            <span id="nota-adicional-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- Botón de envío -->
+          <div class="mt-2">
+            <button
+              type="submit"
+              id="btn-enviar"
+              class="btn btn-primary btn-block"
+            >
+              Enviar respuesta
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Contenedor de toasts -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Lógica de modo sin conexión (Req 13.7) -->
+  <script>
+    const offlineBanner = document.getElementById('offline-banner')
+    function actualizarEstadoConexion() {
+      offlineBanner.classList.toggle('visible', !navigator.onLine)
+    }
+    window.addEventListener('online',  actualizarEstadoConexion)
+    window.addEventListener('offline', actualizarEstadoConexion)
+    actualizarEstadoConexion()
+  </script>
+
+  <!-- Controlador de la página -->
+  <script type="module" src="../../js/eventos-form.js"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sistema de formularios de autorización escolar para padres y tutores" />
+  <title>Formularios Escolares</title>
+
+  <!-- Tailwind CSS CDN con configuración de paleta institucional -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Paleta institucional (Req 10.3)
+            primario: {
+              DEFAULT: '#2563EB',
+              hover:   '#1D4ED8',
+              light:   '#DBEAFE',
+            },
+            exito: {
+              DEFAULT: '#059669',
+              hover:   '#047857',
+              light:   '#D1FAE5',
+            },
+            acento: {
+              DEFAULT: '#F59E0B',
+              hover:   '#D97706',
+              light:   '#FEF3C7',
+            },
+            error: {
+              DEFAULT: '#DC2626',
+              hover:   '#B91C1C',
+              light:   '#FEE2E2',
+            },
+            fondo:  '#F8FAFC',
+            blanco: '#FFFFFF',
+          },
+          borderRadius: {
+            // Asegura radio ≥16px para tarjetas (Req 10.5)
+            card: '1rem',
+          },
+          minHeight: {
+            // Área táctil mínima 44px (Req 10.1, 10.2)
+            touch: '2.75rem',
+          },
+          minWidth: {
+            touch: '2.75rem',
+          },
+          spacing: {
+            // Separación mínima entre elementos interactivos 16px (Req 10.2)
+            interactive: '1rem',
+          },
+          fontSize: {
+            // Tipografía jerárquica (Req 10.4)
+            titulo:    ['1.5rem',   { lineHeight: '1.3', fontWeight: '700' }],
+            subtitulo: ['1.125rem', { lineHeight: '1.4', fontWeight: '600' }],
+            base:      ['1rem',     { lineHeight: '1.5', fontWeight: '400' }],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Sistema de diseño institucional base -->
+  <link rel="stylesheet" href="styles/base.css" />
+</head>
+
+<body class="bg-fondo min-h-screen">
+
+  <!-- Advertencia para tamaños de pantalla no óptimos (Req 10.9) -->
+  <div class="screen-warning" role="alert" aria-live="polite">
+    <div class="card" style="max-width: 400px;">
+      <p class="titulo-principal mb-4">⚠️ Tamaño de pantalla no optimizado</p>
+      <p class="texto-base">
+        Esta aplicación está diseñada para pantallas entre 320px y 1920px de ancho.
+        Ajusta el tamaño de la ventana de tu navegador para continuar.
+      </p>
+    </div>
+  </div>
+
+  <!-- Indicador de modo sin conexión (Req 13.7) -->
+  <div id="offline-banner" class="offline-banner" role="status" aria-live="polite">
+    📡 Modo sin conexión — Verifica tu conexión a internet
+  </div>
+
+  <!-- ================================================================
+       VISTA LOGIN — Se muestra cuando NO hay sesión de padre activa
+       ================================================================ -->
+  <div id="vista-login" class="hidden">
+    <div class="container-app py-8">
+      <!-- Encabezado -->
+      <header class="text-center mb-8">
+        <h1 class="titulo-principal text-primario">🏫 Formularios Escolares</h1>
+        <p class="texto-base text-gray-500 mt-2">Ingresa la matrícula de tu hijo/a para continuar</p>
+      </header>
+
+      <!-- Tarjeta de login -->
+      <div class="card" style="max-width: 480px; margin: 0 auto;">
+        <form id="form-login-padre" novalidate>
+          <div class="form-group">
+            <label for="matricula" class="form-label">
+              Matrícula del alumno
+              <span class="obligatorio" aria-label="campo obligatorio">*</span>
+            </label>
+            <input
+              type="text"
+              id="matricula"
+              name="matricula"
+              class="input-field"
+              placeholder="Ej. ABC123"
+              autocomplete="off"
+              autocapitalize="characters"
+              maxlength="20"
+              required
+              aria-required="true"
+              aria-describedby="matricula-error"
+            />
+            <span id="matricula-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block mt-2">
+            Ingresar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       VISTA FORMULARIOS — Se muestra cuando hay sesión de padre activa
+       ================================================================ -->
+  <div id="vista-formularios" class="hidden">
+    <!-- Barra de navegación superior -->
+    <nav class="bg-blanco border-b border-gray-200 sticky top-0 z-50">
+      <div class="container-app">
+        <div class="actions-row justify-between py-3">
+          <div>
+            <p class="subtitulo text-primario">🏫 Formularios Escolares</p>
+            <p id="nombre-alumno" class="texto-base text-gray-500 text-sm"></p>
+          </div>
+          <button id="btn-logout" class="btn btn-secondary" style="margin-bottom: 0;" aria-label="Cerrar sesión">
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="container-app py-6">
+      <h2 class="subtitulo mb-4">Formularios disponibles</h2>
+
+      <!-- Estado de carga -->
+      <div id="lista-cargando" class="text-center py-12 text-gray-500 texto-base">
+        Cargando formularios…
+      </div>
+
+      <!-- Mensaje sin eventos activos (Req 4.5) -->
+      <div id="lista-vacia" class="hidden text-center py-12">
+        <p class="texto-base text-gray-500">No hay formularios pendientes en este momento</p>
+      </div>
+
+      <!-- Lista de eventos/formularios (se rellena dinámicamente) -->
+      <ul id="lista-eventos" class="hidden" aria-label="Lista de formularios de autorización">
+        <!-- Los elementos se inyectan desde el módulo JS -->
+      </ul>
+    </main>
+  </div>
+
+  <!-- Contenedor de toasts (Req 3.5, 7.4) -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Supabase client (módulo compartido) -->
+  <script type="module" src="supabaseClient.js"></script>
+
+  <!-- Script principal de la página -->
+  <script type="module" src="js/index.js"></script>
+
+  <!-- Lógica de modo sin conexión -->
+  <script>
+    // Indicador offline (Req 13.7)
+    const offlineBanner = document.getElementById('offline-banner')
+    function actualizarEstadoConexion() {
+      if (!navigator.onLine) {
+        offlineBanner.classList.add('visible')
+      } else {
+        offlineBanner.classList.remove('visible')
+      }
+    }
+    window.addEventListener('online',  actualizarEstadoConexion)
+    window.addEventListener('offline', actualizarEstadoConexion)
+    actualizarEstadoConexion() // verificar al cargar
+  </script>
+
+</body>
+</html>
