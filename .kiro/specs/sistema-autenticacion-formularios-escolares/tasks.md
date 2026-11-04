@@ -73,7 +73,7 @@ Plan de implementación MVP directo, sin capas de testing ni arquitectura comple
     - _Requirements: 3.2, 3.4, 3.5, 3.7, 11.1, 11.2, 11.3, 15.2_
 
 - [ ] 4. Módulo de Autenticación y Panel de Maestros
-  - [ ] 4.1 Crear `panel-maestros.html` con vista de inicio de sesión por correo y contraseña validando contra `usuarios_maestros`
+  - [x] 4.1 Crear `panel-maestros.html` con vista de inicio de sesión por correo y contraseña validando contra `usuarios_maestros`
     - Formulario con campos `correo` y `contraseña`; validar que no estén vacíos antes de consultar
     - Consultar `usuarios_maestros` WHERE `LOWER(correo) = LOWER(valor)`, comparar contraseña (hash bcrypt con bcrypt.js CDN)
     - Si credenciales inválidas: mostrar "Credenciales inválidas. Verifica tu correo y contraseña" sin revelar cuál campo es incorrecto

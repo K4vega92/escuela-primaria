@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Panel administrativo para maestros — Escuela Primaria" />
+  <title>Panel Maestros — Escuela Primaria</title>
+
+  <!-- Tailwind CSS CDN con configuración de paleta institucional (idéntica a index.html) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primario: {
+              DEFAULT: '#2563EB',
+              hover:   '#1D4ED8',
+              light:   '#DBEAFE',
+            },
+            exito: {
+              DEFAULT: '#059669',
+              hover:   '#047857',
+              light:   '#D1FAE5',
+            },
+            acento: {
+              DEFAULT: '#F59E0B',
+              hover:   '#D97706',
+              light:   '#FEF3C7',
+            },
+            error: {
+              DEFAULT: '#DC2626',
+              hover:   '#B91C1C',
+              light:   '#FEE2E2',
+            },
+            fondo:  '#F8FAFC',
+            blanco: '#FFFFFF',
+          },
+          borderRadius: {
+            card: '1rem',
+          },
+          minHeight: {
+            touch: '2.75rem',
+          },
+          minWidth: {
+            touch: '2.75rem',
+          },
+          spacing: {
+            interactive: '1rem',
+          },
+          fontSize: {
+            titulo:    ['1.5rem',   { lineHeight: '1.3', fontWeight: '700' }],
+            subtitulo: ['1.125rem', { lineHeight: '1.4', fontWeight: '600' }],
+            base:      ['1rem',     { lineHeight: '1.5', fontWeight: '400' }],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Sistema de diseño institucional base -->
+  <link rel="stylesheet" href="styles/base.css" />
+
+  <!-- Estilos específicos del panel de pestañas -->
+  <style>
+    /* Pestaña activa — borde inferior azul */
+    .tab-activo {
+      color: #2563EB;
+      border-bottom: 3px solid #2563EB;
+      font-weight: 600;
+    }
+    /* Pestaña inactiva */
+    .tab-inactivo {
+      color: #6B7280;
+      border-bottom: 3px solid transparent;
+      font-weight: 400;
+    }
+    .tab-inactivo:hover {
+      color: #2563EB;
+      border-bottom-color: #DBEAFE;
+    }
+  </style>
+</head>
+
+<body class="bg-fondo min-h-screen">
+
+  <!-- Advertencia para tamaños de pantalla no óptimos (Req 10.9) -->
+  <div class="screen-warning" role="alert" aria-live="polite">
+    <div class="card" style="max-width: 400px;">
+      <p class="titulo-principal mb-4">⚠️ Tamaño de pantalla no optimizado</p>
+      <p class="texto-base">
+        Esta aplicación está diseñada para pantallas entre 320px y 1920px de ancho.
+        Ajusta el tamaño de la ventana de tu navegador para continuar.
+      </p>
+    </div>
+  </div>
+
+  <!-- Indicador de modo sin conexión (Req 13.7) -->
+  <div id="offline-banner" class="offline-banner" role="status" aria-live="polite">
+    📡 Modo sin conexión — Verifica tu conexión a internet
+  </div>
+
+  <!-- ================================================================
+       SECCIÓN LOGIN — Visible cuando NO hay sesión válida de maestro
+       ================================================================ -->
+  <div id="seccion-login" class="hidden">
+    <div class="container-app py-10">
+
+      <!-- Encabezado institucional -->
+      <header class="text-center mb-8" aria-label="Encabezado del panel de maestros">
+        <div class="text-5xl mb-3" role="img" aria-label="Escuela">🏫</div>
+        <h1 class="titulo-principal text-primario">Escuela Primaria</h1>
+        <p class="texto-base text-gray-500 mt-1">Panel Administrativo · Maestros</p>
+      </header>
+
+      <!-- Tarjeta de login -->
+      <div class="card" style="max-width: 480px; margin: 0 auto;">
+
+        <h2 class="subtitulo mb-6 text-center">Iniciar sesión</h2>
+
+        <form id="form-login-maestro" novalidate aria-label="Formulario de inicio de sesión">
+
+          <!-- Campo Correo -->
+          <div class="form-group">
+            <label for="correo" class="form-label">
+              Correo electrónico
+              <span class="obligatorio" aria-label="campo obligatorio">*</span>
+            </label>
+            <input
+              type="email"
+              id="correo"
+              name="correo"
+              class="input-field"
+              placeholder="tu.correo@escuela.edu"
+              autocomplete="email"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              maxlength="254"
+              required
+              aria-required="true"
+              aria-describedby="correo-error"
+            />
+            <span id="correo-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- Campo Contraseña -->
+          <div class="form-group">
+            <label for="contrasena" class="form-label">
+              Contraseña
+              <span class="obligatorio" aria-label="campo obligatorio">*</span>
+            </label>
+            <input
+              type="password"
+              id="contrasena"
+              name="contrasena"
+              class="input-field"
+              placeholder="Tu contraseña"
+              autocomplete="current-password"
+              required
+              aria-required="true"
+              aria-describedby="contrasena-error"
+            />
+            <span id="contrasena-error" class="error-message" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- Error general (credenciales, red, bloqueo) -->
+          <div
+            id="login-error-general"
+            class="hidden error-message mb-4 p-3 bg-error-light rounded-lg text-sm"
+            role="alert"
+            aria-live="assertive"
+          ></div>
+
+          <!-- Botón submit -->
+          <button
+            id="btn-login-submit"
+            type="submit"
+            class="btn btn-primary btn-block mt-2"
+            aria-label="Iniciar sesión"
+          >
+            <span id="btn-login-spinner" class="hidden" aria-hidden="true">
+              <!-- Spinner SVG accesible -->
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+            </span>
+            <span id="btn-login-texto">Iniciar sesión</span>
+          </button>
+
+        </form>
+
+        <!-- Aviso de sesión segura -->
+        <p class="texto-base text-gray-400 text-xs text-center mt-4">
+          🔒 Sesión segura · Expira a las 8 horas
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================
+       SECCIÓN PANEL — Visible cuando hay sesión válida de maestro
+       ================================================================ -->
+  <div id="seccion-panel" class="hidden">
+
+    <!-- Barra de navegación superior sticky -->
+    <nav
+      class="bg-blanco border-b border-gray-200 sticky top-0 z-50"
+      aria-label="Barra de navegación del panel"
+    >
+      <div class="container-app">
+        <div class="actions-row justify-between py-3">
+          <!-- Título e identidad del maestro -->
+          <div class="min-w-0">
+            <p class="subtitulo text-primario leading-tight">🏫 Panel Maestros</p>
+            <p
+              id="nombre-maestro"
+              class="texto-base text-gray-500 text-sm truncate"
+              aria-label="Nombre del maestro en sesión"
+            ></p>
+          </div>
+
+          <!-- Botón cerrar sesión -->
+          <button
+            id="btn-logout-maestro"
+            class="btn btn-secondary flex-shrink-0"
+            style="margin-bottom: 0;"
+            aria-label="Cerrar sesión del panel de maestros"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Barra de pestañas ── -->
+    <div
+      class="bg-blanco border-b border-gray-200 sticky z-40"
+      style="top: 64px;"
+      role="tablist"
+      aria-label="Pestañas del panel"
+    >
+      <div class="container-app">
+        <div class="flex gap-0 overflow-x-auto" style="gap: 0;">
+
+          <button
+            id="tab-eventos"
+            data-tab="eventos"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-eventos"
+            class="tab-inactivo flex-shrink-0 px-5 py-4 text-base transition-colors duration-150"
+          >
+            📋 Eventos
+          </button>
+
+          <button
+            id="tab-metricas"
+            data-tab="metricas"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-metricas"
+            class="tab-inactivo flex-shrink-0 px-5 py-4 text-base transition-colors duration-150"
+          >
+            📊 Métricas
+          </button>
+
+          <button
+            id="tab-respuestas"
+            data-tab="respuestas"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-respuestas"
+            class="tab-inactivo flex-shrink-0 px-5 py-4 text-base transition-colors duration-150"
+          >
+            📝 Respuestas
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Contenido de pestañas ── -->
+    <main class="container-app py-6">
+
+      <!-- Panel: Eventos -->
+      <div
+        id="panel-eventos"
+        data-tab-panel="eventos"
+        role="tabpanel"
+        aria-labelledby="tab-eventos"
+        class="hidden"
+      >
+        <!-- 
+          PLACEHOLDER — Tarea 4.2 completará este contenido.
+          La tarea debe implementar: lista de eventos activos, formulario de creación/edición,
+          toggle activo/inactivo y acciones sobre cada evento.
+        -->
+        <div id="contenedor-eventos">
+          <!-- Encabezado de sección -->
+          <div class="actions-row justify-between mb-6">
+            <h2 class="subtitulo">Eventos activos</h2>
+            <button
+              id="btn-nuevo-evento"
+              class="btn btn-primary"
+              style="margin-bottom: 0;"
+              aria-label="Crear nuevo evento"
+            >
+              + Nuevo evento
+            </button>
+          </div>
+
+          <!-- Estado de carga -->
+          <div
+            id="eventos-cargando"
+            class="text-center py-12 text-gray-500 texto-base"
+            aria-live="polite"
+          >
+            Cargando eventos…
+          </div>
+
+          <!-- Lista de eventos (se rellena dinámicamente en tarea 4.2) -->
+          <ul
+            id="lista-eventos-panel"
+            class="hidden space-y-4"
+            aria-label="Lista de eventos del panel"
+          ></ul>
+
+          <!-- Estado vacío -->
+          <div id="eventos-vacio" class="hidden text-center py-12">
+            <p class="texto-base text-gray-400">No hay eventos creados aún.</p>
+            <p class="texto-base text-gray-400 text-sm mt-1">Usa el botón "Nuevo evento" para comenzar.</p>
+          </div>
+        </div>
+
+        <!-- Modal / formulario de evento (placeholder para tarea 4.2) -->
+        <div id="modal-evento" class="hidden" aria-hidden="true"></div>
+      </div>
+
+      <!-- Panel: Métricas — Placeholder para tarea 4.3 -->
+      <div
+        id="panel-metricas"
+        data-tab-panel="metricas"
+        role="tabpanel"
+        aria-labelledby="tab-metricas"
+        class="hidden"
+      >
+        <div class="text-center py-16">
+          <div class="text-5xl mb-4" role="img" aria-label="Próximamente">📊</div>
+          <h2 class="subtitulo text-gray-600 mb-2">Métricas</h2>
+          <p class="texto-base text-gray-400">Próximamente — esta sección se implementará en la tarea 4.3</p>
+        </div>
+      </div>
+
+      <!-- Panel: Respuestas — Placeholder para tarea 4.3 -->
+      <div
+        id="panel-respuestas"
+        data-tab-panel="respuestas"
+        role="tabpanel"
+        aria-labelledby="tab-respuestas"
+        class="hidden"
+      >
+        <div class="text-center py-16">
+          <div class="text-5xl mb-4" role="img" aria-label="Próximamente">📝</div>
+          <h2 class="subtitulo text-gray-600 mb-2">Respuestas</h2>
+          <p class="texto-base text-gray-400">Próximamente — esta sección se implementará en la tarea 4.3</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Contenedor de toasts -->
+  <div
+    id="toast-container"
+    class="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <!-- bcryptjs desde CDN (debe cargarse ANTES del módulo auth-maestros.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+
+  <!-- Supabase client (módulo compartido) -->
+  <script type="module" src="supabaseClient.js"></script>
+
+  <!-- Script principal del panel -->
+  <script type="module" src="js/panel-maestros.js"></script>
+
+  <!-- Lógica de modo sin conexión -->
+  <script>
+    const offlineBanner = document.getElementById('offline-banner')
+    function actualizarEstadoConexion() {
+      if (!navigator.onLine) {
+        offlineBanner.classList.add('visible')
+      } else {
+        offlineBanner.classList.remove('visible')
+      }
+    }
+    window.addEventListener('online',  actualizarEstadoConexion)
+    window.addEventListener('offline', actualizarEstadoConexion)
+    actualizarEstadoConexion()
+  </script>
+
+</body>
+</html>
