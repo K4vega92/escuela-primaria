@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Acceso para maestros y personal escolar" />
+  <title>Acceso Maestros — Escuela Primaria</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primario: { DEFAULT: '#2563EB', hover: '#1D4ED8', light: '#DBEAFE' },
+            exito:    { DEFAULT: '#059669', hover: '#047857', light: '#D1FAE5' },
+            acento:   { DEFAULT: '#F59E0B', hover: '#D97706', light: '#FEF3C7' },
+            error:    { DEFAULT: '#DC2626', hover: '#B91C1C', light: '#FEE2E2' },
+            fondo:  '#F8FAFC',
+            blanco: '#FFFFFF',
+          },
+          borderRadius: { card: '1rem' },
+          minHeight:    { touch: '2.75rem' },
+          minWidth:     { touch: '2.75rem' },
+          spacing:      { interactive: '1rem' },
+          fontSize: {
+            titulo:    ['1.5rem',   { lineHeight: '1.3', fontWeight: '700' }],
+            subtitulo: ['1.125rem', { lineHeight: '1.4', fontWeight: '600' }],
+            base:      ['1rem',     { lineHeight: '1.5', fontWeight: '400' }],
+          },
+        },
+      },
+    }
+  </script>
+
+  <link rel="stylesheet" href="styles/base.css" />
+</head>
+
+<body class="bg-fondo min-h-screen">
+
+  <!-- Indicador de modo sin conexión -->
+  <div id="offline-banner" class="offline-banner" role="status" aria-live="polite">
+    📡 Modo sin conexión — Verifica tu conexión a internet
+  </div>
+
+  <div class="container-app py-10">
+
+    <!-- Encabezado institucional -->
+    <header class="text-center mb-8">
+      <div class="text-5xl mb-3" role="img" aria-label="Escuela">🏫</div>
+      <h1 class="titulo-principal text-primario">Escuela Primaria</h1>
+      <p class="texto-base text-gray-500 mt-1">Panel Administrativo · Maestros</p>
+    </header>
+
+    <!-- Tarjeta de login -->
+    <div class="card" style="max-width: 480px; margin: 0 auto;">
+
+      <h2 class="subtitulo mb-6 text-center">Iniciar sesión</h2>
+
+      <form id="form-login-maestro" novalidate aria-label="Formulario de inicio de sesión">
+
+        <!-- Correo -->
+        <div class="form-group">
+          <label for="correo" class="form-label">
+            Correo electrónico
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <input
+            type="email"
+            id="correo"
+            name="correo"
+            class="input-field"
+            placeholder="tu.correo@escuela.edu"
+            autocomplete="email"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            maxlength="254"
+            required
+            aria-required="true"
+            aria-describedby="correo-error"
+          />
+          <span id="correo-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Contraseña -->
+        <div class="form-group">
+          <label for="contrasena" class="form-label">
+            Contraseña
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <input
+            type="password"
+            id="contrasena"
+            name="contrasena"
+            class="input-field"
+            placeholder="Tu contraseña"
+            autocomplete="current-password"
+            required
+            aria-required="true"
+            aria-describedby="contrasena-error"
+          />
+          <span id="contrasena-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Error general -->
+        <div
+          id="login-error-general"
+          class="hidden error-message mb-4 p-3 rounded-lg text-sm"
+          style="background-color: var(--color-error-light);"
+          role="alert"
+          aria-live="assertive"
+        ></div>
+
+        <!-- Botón submit -->
+        <button
+          id="btn-login-submit"
+          type="submit"
+          class="btn btn-primary btn-block mt-2"
+        >
+          <span id="btn-login-texto">Iniciar sesión</span>
+        </button>
+
+      </form>
+
+      <!-- Volver al inicio -->
+      <div class="text-center mt-5 pt-4" style="border-top: 1px solid #E5E7EB;">
+        <a
+          href="index.html"
+          class="texto-base text-sm"
+          style="color: var(--color-texto-muted);"
+          aria-label="Volver al acceso para padres"
+        >
+          ← Volver al acceso para padres
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Contenedor de toasts -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Offline -->
+  <script>
+    const offlineBanner = document.getElementById('offline-banner')
+    function actualizarConexion() {
+      offlineBanner.classList.toggle('visible', !navigator.onLine)
+    }
+    window.addEventListener('online',  actualizarConexion)
+    window.addEventListener('offline', actualizarConexion)
+    actualizarConexion()
+  </script>
+
+  <!-- Supabase client -->
+  <script type="module" src="supabaseClient.js"></script>
+
+  <!-- Controlador del login -->
+  <script type="module" src="js/login-maestros.js"></script>
+
+</body>
+</html>

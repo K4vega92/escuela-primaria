@@ -79,6 +79,52 @@
       color: #2563EB;
       border-bottom-color: #DBEAFE;
     }
+
+    /* Badge activo/inactivo en lista de eventos */
+    .badge-activo {
+      background-color: #D1FAE5;
+      color: #065F46;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .badge-inactivo {
+      background-color: #F3F4F6;
+      color: #6B7280;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    /* Animación pulso para badge realtime */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* Zebra striping para filas de tabla */
+    #respuestas-tbody tr:nth-child(even) {
+      background-color: #F8FAFC;
+    }
+    #respuestas-tbody tr:hover {
+      background-color: #EFF6FF;
+    }
+
+    /* Overlay del modal — display: flex solo cuando NO tiene la clase hidden */
+    #overlay-modal:not(.hidden) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #overlay-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 1rem;
+    }
   </style>
 </head>
 
@@ -95,115 +141,35 @@
     </div>
   </div>
 
+  <!-- Guard de sesión — redirige a login-maestros.html si no hay sesión válida.
+       Se ejecuta de forma síncrona antes de renderizar el panel. -->
+  <script>
+    (function() {
+      try {
+        var raw = sessionStorage.getItem('sesion_maestro')
+        if (!raw) { window.location.replace('login-maestros.html'); return }
+        var s = JSON.parse(raw)
+        if (!s.expiresAt || s.expiresAt < Date.now()) {
+          sessionStorage.removeItem('sesion_maestro')
+          window.location.replace('login-maestros.html')
+        }
+      } catch (_) {
+        window.location.replace('login-maestros.html')
+      }
+    })()
+  </script>
+
   <!-- Indicador de modo sin conexión (Req 13.7) -->
   <div id="offline-banner" class="offline-banner" role="status" aria-live="polite">
     📡 Modo sin conexión — Verifica tu conexión a internet
   </div>
 
   <!-- ================================================================
-       SECCIÓN LOGIN — Visible cuando NO hay sesión válida de maestro
+       PANEL — Solo accesible con sesión válida.
+       El guard en panel-maestros.js redirige a login-maestros.html
+       si no hay sesión en sessionStorage.
        ================================================================ -->
-  <div id="seccion-login" class="hidden">
-    <div class="container-app py-10">
-
-      <!-- Encabezado institucional -->
-      <header class="text-center mb-8" aria-label="Encabezado del panel de maestros">
-        <div class="text-5xl mb-3" role="img" aria-label="Escuela">🏫</div>
-        <h1 class="titulo-principal text-primario">Escuela Primaria</h1>
-        <p class="texto-base text-gray-500 mt-1">Panel Administrativo · Maestros</p>
-      </header>
-
-      <!-- Tarjeta de login -->
-      <div class="card" style="max-width: 480px; margin: 0 auto;">
-
-        <h2 class="subtitulo mb-6 text-center">Iniciar sesión</h2>
-
-        <form id="form-login-maestro" novalidate aria-label="Formulario de inicio de sesión">
-
-          <!-- Campo Correo -->
-          <div class="form-group">
-            <label for="correo" class="form-label">
-              Correo electrónico
-              <span class="obligatorio" aria-label="campo obligatorio">*</span>
-            </label>
-            <input
-              type="email"
-              id="correo"
-              name="correo"
-              class="input-field"
-              placeholder="tu.correo@escuela.edu"
-              autocomplete="email"
-              autocapitalize="none"
-              autocorrect="off"
-              spellcheck="false"
-              maxlength="254"
-              required
-              aria-required="true"
-              aria-describedby="correo-error"
-            />
-            <span id="correo-error" class="error-message" role="alert" aria-live="polite"></span>
-          </div>
-
-          <!-- Campo Contraseña -->
-          <div class="form-group">
-            <label for="contrasena" class="form-label">
-              Contraseña
-              <span class="obligatorio" aria-label="campo obligatorio">*</span>
-            </label>
-            <input
-              type="password"
-              id="contrasena"
-              name="contrasena"
-              class="input-field"
-              placeholder="Tu contraseña"
-              autocomplete="current-password"
-              required
-              aria-required="true"
-              aria-describedby="contrasena-error"
-            />
-            <span id="contrasena-error" class="error-message" role="alert" aria-live="polite"></span>
-          </div>
-
-          <!-- Error general (credenciales, red, bloqueo) -->
-          <div
-            id="login-error-general"
-            class="hidden error-message mb-4 p-3 bg-error-light rounded-lg text-sm"
-            role="alert"
-            aria-live="assertive"
-          ></div>
-
-          <!-- Botón submit -->
-          <button
-            id="btn-login-submit"
-            type="submit"
-            class="btn btn-primary btn-block mt-2"
-            aria-label="Iniciar sesión"
-          >
-            <span id="btn-login-spinner" class="hidden" aria-hidden="true">
-              <!-- Spinner SVG accesible -->
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-              </svg>
-            </span>
-            <span id="btn-login-texto">Iniciar sesión</span>
-          </button>
-
-        </form>
-
-        <!-- Aviso de sesión segura -->
-        <p class="texto-base text-gray-400 text-xs text-center mt-4">
-          🔒 Sesión segura · Expira a las 8 horas
-        </p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ================================================================
-       SECCIÓN PANEL — Visible cuando hay sesión válida de maestro
-       ================================================================ -->
-  <div id="seccion-panel" class="hidden">
+  <div id="seccion-panel">
 
     <!-- Barra de navegación superior sticky -->
     <nav
@@ -293,15 +259,10 @@
         aria-labelledby="tab-eventos"
         class="hidden"
       >
-        <!-- 
-          PLACEHOLDER — Tarea 4.2 completará este contenido.
-          La tarea debe implementar: lista de eventos activos, formulario de creación/edición,
-          toggle activo/inactivo y acciones sobre cada evento.
-        -->
         <div id="contenedor-eventos">
           <!-- Encabezado de sección -->
           <div class="actions-row justify-between mb-6">
-            <h2 class="subtitulo">Eventos activos</h2>
+            <h2 class="subtitulo">Eventos</h2>
             <button
               id="btn-nuevo-evento"
               class="btn btn-primary"
@@ -321,10 +282,10 @@
             Cargando eventos…
           </div>
 
-          <!-- Lista de eventos (se rellena dinámicamente en tarea 4.2) -->
+          <!-- Lista de eventos -->
           <ul
             id="lista-eventos-panel"
-            class="hidden space-y-4"
+            class="hidden"
             aria-label="Lista de eventos del panel"
           ></ul>
 
@@ -334,12 +295,9 @@
             <p class="texto-base text-gray-400 text-sm mt-1">Usa el botón "Nuevo evento" para comenzar.</p>
           </div>
         </div>
-
-        <!-- Modal / formulario de evento (placeholder para tarea 4.2) -->
-        <div id="modal-evento" class="hidden" aria-hidden="true"></div>
       </div>
 
-      <!-- Panel: Métricas — Placeholder para tarea 4.3 -->
+      <!-- Panel: Métricas -->
       <div
         id="panel-metricas"
         data-tab-panel="metricas"
@@ -347,14 +305,72 @@
         aria-labelledby="tab-metricas"
         class="hidden"
       >
-        <div class="text-center py-16">
-          <div class="text-5xl mb-4" role="img" aria-label="Próximamente">📊</div>
-          <h2 class="subtitulo text-gray-600 mb-2">Métricas</h2>
-          <p class="texto-base text-gray-400">Próximamente — esta sección se implementará en la tarea 4.3</p>
+        <!-- Selector de evento -->
+        <div class="card mb-6">
+          <label for="metricas-select-evento" class="form-label mb-2">Selecciona un evento</label>
+          <select
+            id="metricas-select-evento"
+            class="input-field"
+            aria-label="Seleccionar evento para ver métricas"
+          >
+            <option value="">Cargando eventos…</option>
+          </select>
+          <!-- Badge realtime -->
+          <div
+            id="metricas-realtime-badge"
+            class="hidden mt-3 flex items-center gap-2 texto-base text-sm"
+            style="color: var(--color-exito);"
+            aria-live="polite"
+          >
+            <span
+              style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-exito); animation: pulse 2s infinite;"
+              aria-hidden="true"
+            ></span>
+            En tiempo real — se actualiza automáticamente
+          </div>
+        </div>
+
+        <!-- Estado de carga inicial -->
+        <div
+          id="metricas-cargando"
+          class="text-center py-12 text-gray-500 texto-base"
+          aria-live="polite"
+        >
+          Cargando eventos disponibles…
+        </div>
+
+        <!-- Sin eventos -->
+        <div id="metricas-sin-eventos" class="hidden text-center py-12">
+          <div class="text-4xl mb-3" aria-hidden="true">📊</div>
+          <p class="texto-base text-gray-500">No hay eventos disponibles para visualizar.</p>
+        </div>
+
+        <!-- Error / timeout -->
+        <p
+          id="metricas-error"
+          class="hidden texto-base text-center py-8"
+          style="color: var(--color-error);"
+          role="alert"
+          aria-live="assertive"
+        ></p>
+
+        <!-- Contenido de métricas (se muestra tras calcular) -->
+        <div id="metricas-contenido" class="hidden">
+          <h2
+            id="metricas-titulo-evento"
+            class="subtitulo mb-5"
+            aria-live="polite"
+          ></h2>
+
+          <!-- Tarjetas por grupo -->
+          <div id="metricas-tarjetas-grupos"></div>
+
+          <!-- Lista de alumnos sin respuesta -->
+          <div id="metricas-lista-faltantes" class="mt-2"></div>
         </div>
       </div>
 
-      <!-- Panel: Respuestas — Placeholder para tarea 4.3 -->
+      <!-- Panel: Respuestas -->
       <div
         id="panel-respuestas"
         data-tab-panel="respuestas"
@@ -362,14 +378,238 @@
         aria-labelledby="tab-respuestas"
         class="hidden"
       >
-        <div class="text-center py-16">
-          <div class="text-5xl mb-4" role="img" aria-label="Próximamente">📝</div>
-          <h2 class="subtitulo text-gray-600 mb-2">Respuestas</h2>
-          <p class="texto-base text-gray-400">Próximamente — esta sección se implementará en la tarea 4.3</p>
+        <!-- Selector de evento -->
+        <div class="card mb-6">
+          <label for="respuestas-select-evento" class="form-label mb-2">Selecciona un evento</label>
+          <select
+            id="respuestas-select-evento"
+            class="input-field"
+            aria-label="Seleccionar evento para ver respuestas"
+          >
+            <option value="">Cargando eventos…</option>
+          </select>
+        </div>
+
+        <!-- Estado de carga -->
+        <div
+          id="respuestas-cargando"
+          class="text-center py-12 text-gray-500 texto-base"
+          aria-live="polite"
+        >
+          Cargando eventos disponibles…
+        </div>
+
+        <!-- Sin datos -->
+        <p
+          id="respuestas-sin-datos"
+          class="hidden texto-base text-center py-8 text-gray-500"
+          aria-live="polite"
+        >
+          No hay respuestas registradas para este evento.
+        </p>
+
+        <!-- Tabla de respuestas -->
+        <div id="respuestas-tabla" class="hidden">
+          <div class="actions-row justify-between mb-3">
+            <h2 class="subtitulo">Respuestas registradas</h2>
+            <span
+              id="respuestas-total-label"
+              class="badge"
+              style="background: var(--color-primario-light); color: var(--color-primario);"
+            ></span>
+          </div>
+
+          <!-- Scroll horizontal para la tabla en móvil -->
+          <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 1rem;">
+            <table
+              class="w-full bg-white"
+              style="border-collapse: collapse; border-radius: 1rem; overflow: hidden; box-shadow: var(--shadow-md); min-width: 700px;"
+              aria-label="Tabla de respuestas al evento"
+            >
+              <thead>
+                <tr style="background: var(--color-primario); color: white;">
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Alumno</th>
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Grupo</th>
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Tutor</th>
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Parentesco</th>
+                  <th class="py-3 px-4 text-center texto-base font-semibold" scope="col">Autoriza</th>
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Alergias</th>
+                  <th class="py-3 px-4 text-left texto-base font-semibold" scope="col">Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="respuestas-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
     </main>
+  </div>
+
+  <!-- ================================================================
+       MODAL DE EVENTO — Creación y edición (Tarea 4.2)
+       ================================================================ -->
+  <div
+    id="overlay-modal"
+    class="hidden"
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-titulo"
+  >
+    <div
+      class="bg-white w-full"
+      style="max-width: 560px; border-radius: 1rem; max-height: 90vh; overflow-y: auto;"
+      role="document"
+    >
+      <!-- Cabecera del modal -->
+      <div
+        class="actions-row justify-between py-4 px-6"
+        style="border-bottom: 1px solid #E5E7EB; position: sticky; top: 0; background: white; z-index: 1;"
+      >
+        <h2 id="modal-titulo" class="subtitulo" style="margin-bottom: 0;">Nuevo evento</h2>
+        <button
+          id="btn-cerrar-modal"
+          type="button"
+          class="btn btn-secondary"
+          style="margin-bottom: 0; padding: 0.5rem 1rem;"
+          aria-label="Cerrar modal"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario -->
+      <form id="form-evento" novalidate class="p-6">
+
+        <!-- Campo oculto para edición -->
+        <input type="hidden" id="evento-id-edicion" name="evento_id" />
+
+        <!-- Tipo -->
+        <div class="form-group">
+          <label for="evento-tipo-select" class="form-label">
+            Tipo de evento
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <select
+            id="evento-tipo-select"
+            name="tipo"
+            class="input-field"
+            required
+            aria-required="true"
+            aria-describedby="evento-tipo-error"
+          >
+            <option value="evento">📋 Evento escolar</option>
+            <option value="vacuna">💉 Vacuna</option>
+            <option value="salida">🚌 Salida educativa</option>
+          </select>
+          <span id="evento-tipo-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Título -->
+        <div class="form-group">
+          <label for="evento-titulo-input" class="form-label">
+            Título
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <input
+            type="text"
+            id="evento-titulo-input"
+            name="titulo"
+            class="input-field"
+            placeholder="Ej. Visita al Zoológico"
+            maxlength="150"
+            required
+            aria-required="true"
+            aria-describedby="evento-titulo-error"
+          />
+          <span id="evento-titulo-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Descripción -->
+        <div class="form-group">
+          <label for="evento-descripcion-input" class="form-label">
+            Descripción
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <textarea
+            id="evento-descripcion-input"
+            name="descripcion"
+            class="input-field"
+            rows="4"
+            placeholder="Describe el evento, lugar, horario, costo, etc."
+            required
+            aria-required="true"
+            aria-describedby="evento-descripcion-error"
+          ></textarea>
+          <span id="evento-descripcion-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Fecha del evento -->
+        <div class="form-group">
+          <label for="evento-fecha-input" class="form-label">
+            Fecha del evento
+            <span class="obligatorio" aria-label="campo obligatorio">*</span>
+          </label>
+          <input
+            type="date"
+            id="evento-fecha-input"
+            name="fecha_evento"
+            class="input-field"
+            required
+            aria-required="true"
+            aria-describedby="evento-fecha-error"
+          />
+          <span id="evento-fecha-error" class="error-message" role="alert" aria-live="polite"></span>
+        </div>
+
+        <!-- Toggle activo/inactivo (solo en edición) -->
+        <div id="grupo-activo" class="form-group hidden">
+          <div class="flex items-center gap-3" style="min-height: 2.75rem;">
+            <input
+              type="checkbox"
+              id="evento-activo-check"
+              name="activo"
+              class="w-5 h-5 cursor-pointer"
+              style="min-width: 1.25rem; min-height: 1.25rem; accent-color: #2563EB;"
+            />
+            <label for="evento-activo-check" class="form-label cursor-pointer" style="margin-bottom: 0;">
+              Evento activo (visible para padres)
+            </label>
+          </div>
+        </div>
+
+        <!-- Error general (red) -->
+        <p
+          id="modal-error-general"
+          class="hidden error-message mb-4 p-3 bg-error-light rounded-lg text-sm"
+          role="alert"
+          aria-live="assertive"
+        ></p>
+
+        <!-- Botones de acción -->
+        <div class="actions-row" style="justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; margin-bottom: 0;">
+          <button
+            type="button"
+            id="btn-cancelar-modal"
+            class="btn btn-secondary"
+            style="margin-bottom: 0;"
+            onclick="document.getElementById('overlay-modal').classList.add('hidden')"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btn-guardar-evento"
+            type="submit"
+            class="btn btn-primary"
+            style="margin-bottom: 0;"
+          >
+            Guardar evento
+          </button>
+        </div>
+
+      </form>
+    </div>
   </div>
 
   <!-- Contenedor de toasts -->
@@ -386,7 +626,7 @@
   <!-- Supabase client (módulo compartido) -->
   <script type="module" src="supabaseClient.js"></script>
 
-  <!-- Script principal del panel -->
+  <!-- Script principal del panel (importa eventos-panel.js y metricas-panel.js internamente) -->
   <script type="module" src="js/panel-maestros.js"></script>
 
   <!-- Lógica de modo sin conexión -->

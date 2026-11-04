@@ -179,7 +179,7 @@ export async function loginPadre(matricula) {
 export function requireSesionPadre() {
   const sesion = getSesionPadre()
   if (!sesion) {
-    window.location.href = '/index.html'
+    window.location.href = '../index.html'
   }
 }
 

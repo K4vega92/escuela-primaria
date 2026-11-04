@@ -77,18 +77,17 @@ export function getSesionMaestro() {
 
 /**
  * Persiste la sesión del maestro en sessionStorage con TTL 8h.
- * (sessionStorage persiste entre pestañas del mismo origen pero NO entre cierres — Req 5.4)
+ * Usa las columnas reales de la BD: id, nombre, email, grupo_asignado.
  *
- * @param {{ id, nombre, correo, rol, grupos }} maestro
+ * @param {{ id, nombre, email, grupo_asignado }} maestro
  */
 function guardarSesionMaestro(maestro) {
   const sesion = {
-    id:        maestro.id,
-    nombre:    maestro.nombre,
-    correo:    maestro.correo,
-    rol:       maestro.rol,
-    grupos:    Array.isArray(maestro.grupos) ? maestro.grupos : [],
-    expiresAt: Date.now() + TTL_SESION_MS,
+    id:             maestro.id,
+    nombre:         maestro.nombre,
+    correo:         maestro.email,           // normalizar a 'correo' para UI
+    grupo_asignado: maestro.grupo_asignado ?? null,
+    expiresAt:      Date.now() + TTL_SESION_MS,
   }
   try {
     sessionStorage.setItem(CLAVE_SESION_MAESTRO, JSON.stringify(sesion))
@@ -126,12 +125,13 @@ export async function loginMaestro(correo, password) {
   }
 
   // 2. Consultar usuarios_maestros (case-insensitive) — Req 5.2
+  // Columnas reales de la BD: id, email, password, nombre, grupo_asignado
   let data, queryError
   try {
     const resultado = await supabase
       .from('usuarios_maestros')
-      .select('id, correo, password_hash, nombre, rol, grupos')
-      .ilike('correo', correoTrim)
+      .select('id, email, password, nombre, grupo_asignado')
+      .ilike('email', correoTrim)
       .maybeSingle()
 
     data       = resultado.data
@@ -178,7 +178,7 @@ export async function loginMaestro(correo, password) {
   let passwordValida = false
   try {
     const bc = getBcrypt()
-    passwordValida = await bc.compare(password, data.password_hash)
+    passwordValida = await bc.compare(password, data.password)
   } catch (err) {
     console.error('[AuthMaestros] Error al comparar contraseña:', err)
     return {
@@ -213,7 +213,7 @@ export async function loginMaestro(correo, password) {
 export function requireSesionMaestro() {
   const sesion = getSesionMaestro()
   if (!sesion) {
-    window.location.href = '/panel-maestros.html'
+    window.location.href = 'login-maestros.html'
   }
 }
 
@@ -252,6 +252,6 @@ export function logoutMaestro(mostrarToastFn) {
   // Redirigir al login (Req 6.5)
   // Pequeño delay para que el toast sea visible si se usó (Req 6.4)
   setTimeout(() => {
-    window.location.href = 'panel-maestros.html'
+    window.location.href = 'login-maestros.html'
   }, 1500)
 }

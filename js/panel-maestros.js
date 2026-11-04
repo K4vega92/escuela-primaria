@@ -11,23 +11,11 @@
  * Requirements: 5.1, 5.7, 6.1, 6.7
  */
 
-import { getSesionMaestro, loginMaestro, logoutMaestro } from './auth-maestros.js'
-import { registrarIntentoFallido, estaBloqueado, resetearIntentos } from './rate-limiter.js'
+import { getSesionMaestro, logoutMaestro } from './auth-maestros.js'
+import { cargarEventosPanel, inicializarModal, abrirModalNuevoEvento } from './eventos-panel.js'
+import { inicializarMetricas, inicializarRespuestas, cancelarRealtime } from './metricas-panel.js'
 
 // ── Referencias DOM ───────────────────────────────────────────────────────────
-const seccionLogin = document.getElementById('seccion-login')
-const seccionPanel = document.getElementById('seccion-panel')
-
-// Login
-const formLogin       = document.getElementById('form-login-maestro')
-const inputCorreo     = document.getElementById('correo')
-const inputPassword   = document.getElementById('contrasena')
-const errorCorreo     = document.getElementById('correo-error')
-const errorPassword   = document.getElementById('contrasena-error')
-const errorGeneral    = document.getElementById('login-error-general')
-const btnSubmitLogin  = document.getElementById('btn-login-submit')
-const textoBtn        = document.getElementById('btn-login-texto')
-const spinnerBtn      = document.getElementById('btn-login-spinner')
 
 // Panel
 const nombreMaestroEl = document.getElementById('nombre-maestro')
@@ -70,152 +58,28 @@ function mostrarToast(mensaje, tipo = 'exito', duracionMs = 4000) {
 
 // ── Gestión de sesión al cargar ───────────────────────────────────────────────
 
-/**
- * Verifica la sesión y muestra la sección apropiada.
- * Si la sesión expiró muestra mensaje y redirige.
- *
- * Requirements: 6.7
- */
-function inicializarVista() {
-  // Detectar parámetro ?expirado en la URL (para redireccionamiento por TTL)
-  const params = new URLSearchParams(window.location.search)
-  if (params.has('expirado')) {
-    mostrarErrorGeneral('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
-    // Limpiar parámetro de URL sin recargar
-    history.replaceState(null, '', window.location.pathname)
-    mostrarLoginUI()
-    return
-  }
+// ── Inicialización del panel ──────────────────────────────────────────────────
+// El guard inline en el HTML ya redirigió si no hay sesión,
+// así que aquí llegamos solo con sesión válida.
 
-  const sesion = getSesionMaestro()
+const sesion = getSesionMaestro()
 
-  if (sesion) {
-    mostrarPanelUI(sesion)
-  } else {
-    mostrarLoginUI()
-  }
+// Rellenar nombre del maestro en la barra nav
+if (nombreMaestroEl && sesion) {
+  nombreMaestroEl.textContent = sesion.nombre ?? sesion.correo
 }
 
-function mostrarLoginUI() {
-  seccionLogin.classList.remove('hidden')
-  seccionPanel.classList.add('hidden')
-}
+// Inicializar modal de eventos
+inicializarModal()
 
-function mostrarPanelUI(sesion) {
-  seccionLogin.classList.add('hidden')
-  seccionPanel.classList.remove('hidden')
-
-  // Rellenar nombre del maestro en la barra nav
-  if (nombreMaestroEl) {
-    nombreMaestroEl.textContent = sesion.nombre ?? sesion.correo
-  }
-
-  // Activar primera pestaña por defecto
-  activarTab('eventos')
-}
-
-// ── Formulario de login ───────────────────────────────────────────────────────
-
-function limpiarErrores() {
-  errorCorreo.textContent   = ''
-  errorPassword.textContent = ''
-  errorGeneral.textContent  = ''
-  errorGeneral.classList.add('hidden')
-  inputCorreo.classList.remove('is-error')
-  inputPassword.classList.remove('is-error')
-}
-
-function mostrarErrorGeneral(mensaje) {
-  errorGeneral.textContent = mensaje
-  errorGeneral.classList.remove('hidden')
-}
-
-function setLoadingLogin(loading) {
-  btnSubmitLogin.disabled = loading
-  if (textoBtn)   textoBtn.textContent = loading ? 'Verificando…' : 'Iniciar sesión'
-  if (spinnerBtn) spinnerBtn.classList.toggle('hidden', !loading)
-}
-
-formLogin?.addEventListener('submit', async (e) => {
-  e.preventDefault()
-  limpiarErrores()
-
-  const correo   = inputCorreo.value
-  const password = inputPassword.value
-
-  // 1. Validación de campos no vacíos (sin solo-whitespace) — Req 5.1
-  let hayError = false
-
-  if (!correo || !correo.trim()) {
-    errorCorreo.textContent = 'El correo es obligatorio.'
-    inputCorreo.classList.add('is-error')
-    hayError = true
-  }
-
-  if (!password || !password.trim()) {
-    errorPassword.textContent = 'La contraseña es obligatoria.'
-    inputPassword.classList.add('is-error')
-    hayError = true
-  }
-
-  if (hayError) return
-
-  // 2. Verificar rate limiter — Req 5.7
-  const correoNorm = correo.trim().toLowerCase()
-  const bloqueado  = estaBloqueado(correoNorm)
-
-  if (bloqueado.bloqueado) {
-    const minutos = Math.ceil(bloqueado.tiempoRestante / 60000)
-    mostrarErrorGeneral(
-      `Demasiados intentos fallidos. Intenta de nuevo en ${minutos} minuto${minutos !== 1 ? 's' : ''}.`
-    )
-    return
-  }
-
-  // 3. Llamar loginMaestro
-  setLoadingLogin(true)
-
-  const resultado = await loginMaestro(correo, password)
-
-  setLoadingLogin(false)
-
-  if (resultado.ok) {
-    // 4. Éxito — resetear intentos y mostrar panel
-    resetearIntentos(correoNorm)
-    mostrarToast(`Bienvenido, ${resultado.maestro.nombre}`, 'exito', 2000)
-
-    setTimeout(() => {
-      mostrarPanelUI(resultado.maestro)
-    }, 500)
-
-  } else {
-    // 5. Fallo — registrar intento (solo para errores de credenciales, no de red)
-    if (resultado.error === 'credenciales' || resultado.error === 'bloqueado') {
-      registrarIntentoFallido(correoNorm)
-
-      // Verificar si ahora quedó bloqueado tras este intento
-      const ahora = estaBloqueado(correoNorm)
-      if (ahora.bloqueado) {
-        const minutos = Math.ceil(ahora.tiempoRestante / 60000)
-        mostrarErrorGeneral(
-          `Demasiados intentos fallidos. Tu cuenta está bloqueada temporalmente por ${minutos} minuto${minutos !== 1 ? 's' : ''}.`
-        )
-      } else {
-        mostrarErrorGeneral(resultado.mensajeUsuario)
-      }
-    } else {
-      // Error de red o validación — no penalizar
-      mostrarErrorGeneral(resultado.mensajeUsuario)
-    }
-
-    // Solo limpiar la contraseña (nunca mostrarla)
-    inputPassword.value = ''
-    // El correo se preserva para comodidad del usuario
-  }
+// Conectar botón "Nuevo evento"
+document.getElementById('btn-nuevo-evento')?.addEventListener('click', () => {
+  abrirModalNuevoEvento()
 })
 
 // ── Botón Cerrar Sesión ───────────────────────────────────────────────────────
 btnLogout?.addEventListener('click', () => {
+  cancelarRealtime()
   mostrarToast('Sesión cerrada correctamente.', 'exito', 2000)
   logoutMaestro(mostrarToast)
 })
@@ -224,11 +88,9 @@ btnLogout?.addEventListener('click', () => {
 
 /**
  * Activa la pestaña indicada y muestra su contenido.
- *
- * @param {string} tabId — valor del atributo data-tab
+ * Carga los datos de cada sección la primera vez que se activa.
  */
 function activarTab(tabId) {
-  // Actualizar botones de pestaña
   tabBtns.forEach((btn) => {
     const esActivo = btn.dataset.tab === tabId
     btn.setAttribute('aria-selected', esActivo ? 'true' : 'false')
@@ -236,18 +98,25 @@ function activarTab(tabId) {
     btn.classList.toggle('tab-inactivo', !esActivo)
   })
 
-  // Mostrar/ocultar paneles de contenido
   tabPanels.forEach((panel) => {
     const esActivo = panel.dataset.tabPanel === tabId
     panel.classList.toggle('hidden', !esActivo)
   })
+
+  if (!sesion) return
+
+  if (tabId === 'eventos') {
+    cargarEventosPanel()
+  } else if (tabId === 'metricas') {
+    inicializarMetricas(sesion)
+  } else if (tabId === 'respuestas') {
+    inicializarRespuestas(sesion)
+  }
 }
 
 tabBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    activarTab(btn.dataset.tab)
-  })
+  btn.addEventListener('click', () => activarTab(btn.dataset.tab))
 })
 
-// ── Inicialización ────────────────────────────────────────────────────────────
-inicializarVista()
+// Activar primera pestaña al cargar
+activarTab('eventos')
